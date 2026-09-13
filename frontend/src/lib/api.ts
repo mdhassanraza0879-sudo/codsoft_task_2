@@ -9,7 +9,16 @@ import {
   ReservationStatus,
 } from '../types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const getBaseApiUrl = (): string => {
+  const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  const cleanUrl = rawUrl.trim().replace(/\/+$/, '');
+  if (cleanUrl.endsWith('/api')) {
+    return cleanUrl;
+  }
+  return `${cleanUrl}/api`;
+};
+
+const API_BASE_URL = getBaseApiUrl();
 
 const getAuthToken = (): string | null => {
   if (typeof window === 'undefined') return null;

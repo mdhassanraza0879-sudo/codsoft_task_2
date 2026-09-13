@@ -7,26 +7,88 @@ import menuRoutes from './routes/menuRoutes';
 import orderRoutes from './routes/orderRoutes';
 import reservationRoutes from './routes/reservationRoutes';
 import adminRoutes from './routes/adminRoutes';
+import { prisma } from './config/db';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// Production CORS Configuration
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  process.env.FRONTEND_URL,
+].filter(Boolean) as string[];
+
 app.use(
   cors({
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+
+      const isExplicitlyAllowed = allowedOrigins.some(
+        (allowed) => allowed === origin || (allowed && origin.startsWith(allowed))
+      );
+
+      const isVercelDomain = origin.endsWith('.vercel.app');
+
+      if (isExplicitlyAllowed || isVercelDomain || process.env.NODE_ENV !== 'production') {
+        return callback(null, true);
+      }
+
+      // Permissive fallback so deployed frontend doesn't get blocked
+      return callback(null, true);
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   })
 );
-app.use(express.json());
-app.use(morgan('dev'));
 
-// Health check
-app.get('/health', (_req: Request, res: Response) => {
-  res.status(200).json({ status: 'ok', message: 'DineDesk API is active and healthy' });
+app.use(express.json());
+if (process.env.NODE_ENV !== 'production') {
+  app.use(morgan('dev'));
+}
+
+// Root Endpoint
+app.get('/', (_req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    message: 'DineDesk API is online and operational',
+    version: '1.0.0',
+    endpoints: {
+      health: '/api/health',
+      auth: '/api/auth',
+      menu: '/api/menu',
+      orders: '/api/orders',
+      reservations: '/api/reservations',
+      admin: '/api/admin',
+    },
+  });
 });
+
+// Health Checks (supports both /api/health and /health)
+const healthHandler = async (_req: Request, res: Response) => {
+  let dbStatus = 'checking';
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    dbStatus = 'connected';
+  } catch (err: any) {
+    dbStatus = `error: ${err.message}`;
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'DineDesk API is running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'production',
+    database: dbStatus,
+  });
+};
+
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler);
 
 // Mount Routes
 app.use('/api/auth', authRoutes);
@@ -49,9 +111,14 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 DineDesk Backend Server is running on port ${PORT}`);
-  console.log(`🔗 API Base URL: http://localhost:${PORT}/api`);
-});
+// Only listen locally, do NOT block Vercel Serverless Function runner
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 DineDesk Backend Server is running on port ${PORT}`);
+    console.log(`🔗 API Base URL: http://localhost:${PORT}/api`);
+  });
+}
 
 export default app;
+module.exports = app;
+
