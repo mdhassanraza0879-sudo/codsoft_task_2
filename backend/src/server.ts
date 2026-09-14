@@ -15,27 +15,13 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Production CORS Configuration
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  process.env.FRONTEND_URL,
-].filter(Boolean) as string[];
-
 app.use(cors({
   origin: '*',
-  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
 
-// Permissive fallback so deployed frontend doesn't get blocked
-return callback(null, true);
-    },
-credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  })
-);
+app.options('*', cors());
 
 app.use(express.json());
 if (process.env.NODE_ENV !== 'production') {
