@@ -13,6 +13,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: "https://backend-zwgv-8g25u01uh-loop-project.vercel.app/api/:path*",
+      },
+    ];
+  },
 };
 
 export default nextConfig;
