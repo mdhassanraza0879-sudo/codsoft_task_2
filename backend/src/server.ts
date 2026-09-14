@@ -21,27 +21,18 @@ const allowedOrigins = [
   process.env.FRONTEND_URL,
 ].filter(Boolean) as string[];
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, server-to-server)
-      if (!origin) return callback(null, true);
+app.use(cors({
+  origin: '*',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
-      const isExplicitlyAllowed = allowedOrigins.some(
-        (allowed) => allowed === origin || (allowed && origin.startsWith(allowed))
-      );
-
-      const isVercelDomain = origin.endsWith('.vercel.app');
-
-      if (isExplicitlyAllowed || isVercelDomain || process.env.NODE_ENV !== 'production') {
-        return callback(null, true);
-      }
-
-      // Permissive fallback so deployed frontend doesn't get blocked
-      return callback(null, true);
+// Permissive fallback so deployed frontend doesn't get blocked
+return callback(null, true);
     },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   })
 );
