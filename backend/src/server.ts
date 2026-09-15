@@ -15,13 +15,59 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Production CORS Configuration
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
-}));
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3001',
+  process.env.FRONTEND_URL,
+].filter(Boolean) as string[];
 
-app.options('*', cors());
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // 1. Allow non-browser requests (curl, Postman, mobile apps, server-side fetch)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // 2. Allow explicitly configured origins (including FRONTEND_URL)
+    const isExplicit = allowedOrigins.some(
+      (allowed) => allowed === origin || (allowed && origin.startsWith(allowed))
+    );
+
+    // 3. Allow Vercel preview/production deployments (*.vercel.app)
+    const isVercel = origin.endsWith('.vercel.app');
+
+    // 4. In development mode or local testing, allow any localhost origin
+    const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+
+    if (isExplicit || isVercel || isLocalhost || process.env.NODE_ENV !== 'production') {
+      return callback(null, true); // Dynamically reflects the specific request origin
+    }
+
+    return callback(new Error(`CORS origin not allowed: ${origin}`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'Accept',
+    'X-Requested-With',
+    'X-CSRF-Token',
+    'Accept-Version',
+    'Content-Length',
+    'Date',
+    'X-Api-Version',
+  ],
+  exposedHeaders: ['Set-Cookie'],
+  maxAge: 86400,
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 if (process.env.NODE_ENV !== 'production') {
@@ -98,4 +144,3 @@ if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
 
 export default app;
 module.exports = app;
-

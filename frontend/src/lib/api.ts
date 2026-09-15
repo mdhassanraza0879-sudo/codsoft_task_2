@@ -41,6 +41,7 @@ async function apiRequest<T>(
 
   const res = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
+    credentials: options.credentials || 'include',
     headers,
   });
 
