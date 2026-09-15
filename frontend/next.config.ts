@@ -18,6 +18,8 @@ const nextConfig: NextConfig = {
       process.env.BACKEND_URL ||
       (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL.startsWith('http')
         ? process.env.NEXT_PUBLIC_API_URL
+        : process.env.NODE_ENV === 'production'
+        ? 'https://backend-zwgv.vercel.app/api'
         : 'http://localhost:5000/api');
 
     const cleanDest = backendDest.trim().replace(/\/+$/, '');

@@ -10,9 +10,13 @@ import {
 } from '../types';
 
 const getBaseApiUrl = (): string => {
-  const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  const rawUrl =
+    process.env.NEXT_PUBLIC_API_URL ||
+    (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+      ? '/api'
+      : 'http://localhost:5000/api');
   const cleanUrl = rawUrl.trim().replace(/\/+$/, '');
-  if (cleanUrl.endsWith('/api')) {
+  if (cleanUrl === '/api' || cleanUrl.endsWith('/api')) {
     return cleanUrl;
   }
   return `${cleanUrl}/api`;

@@ -20,6 +20,7 @@ const allowedOrigins = [
   'http://127.0.0.1:3000',
   'http://localhost:3001',
   'http://127.0.0.1:3001',
+  'https://dinedesk-restaurant.vercel.app',
   process.env.FRONTEND_URL,
 ].filter(Boolean) as string[];
 
@@ -30,7 +31,7 @@ const corsOptions: cors.CorsOptions = {
       return callback(null, true);
     }
 
-    // 2. Allow explicitly configured origins (including FRONTEND_URL)
+    // 2. Allow explicitly configured origins (including FRONTEND_URL & production frontend)
     const isExplicit = allowedOrigins.some(
       (allowed) => allowed === origin || (allowed && origin.startsWith(allowed))
     );
@@ -42,7 +43,7 @@ const corsOptions: cors.CorsOptions = {
     const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
 
     if (isExplicit || isVercel || isLocalhost || process.env.NODE_ENV !== 'production') {
-      return callback(null, true); // Dynamically reflects the specific request origin
+      return callback(null, origin); // Dynamically reflects the specific request origin
     }
 
     return callback(new Error(`CORS origin not allowed: ${origin}`));
@@ -70,6 +71,7 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
@@ -92,21 +94,11 @@ app.get('/', (_req: Request, res: Response) => {
 });
 
 // Health Checks (supports both /api/health and /health)
-const healthHandler = async (_req: Request, res: Response) => {
-  let dbStatus = 'checking';
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    dbStatus = 'connected';
-  } catch (err: any) {
-    dbStatus = `error: ${err.message}`;
-  }
-
+// Returns HTTP 200 immediately without requiring a database query
+const healthHandler = (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
     message: 'DineDesk API is running',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'production',
-    database: dbStatus,
   });
 };
 
